@@ -1,6 +1,6 @@
 ---
 name: provenfix
-description: Record browser videos of a change with Playwright MCP - a BEFORE and an AFTER video from one scenario as proof of a fix, a walkthrough video of a new feature, or both. Use when the user asks for before/after videos, a recording, demo, walkthrough, tour, proof or PoC of a change or of a GitLab/GitHub issue, including fixes made directly on main, uncommitted edits, or an MR/PR opened earlier. Desktop by default; tablet, mobile or "responsive" on request. Never uploads unless explicitly asked.
+description: Record browser videos of a change with Playwright MCP, with Claude driving the browser itself - a BEFORE and an AFTER video from one scenario as proof of a fix, a walkthrough video of a new feature, or both. Use when the user asks for before/after videos, a recording, demo, walkthrough, tour, proof or PoC of a change or of a GitLab/GitHub issue, including fixes made directly on main, uncommitted edits, or an MR/PR opened earlier. Desktop by default; tablet, mobile or "responsive" on request. Not for recording the user's own screen or terminal. Doesn't upload; leaves the files for you to attach.
 ---
 
 # provenfix

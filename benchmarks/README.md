@@ -2,6 +2,8 @@
 
 What a provenfix run costs (agent time, tokens, money) and what it produces (video length and size), measured from real runs. Use it to judge whether a change to the skill made runs faster, cheaper or smaller.
 
+Whether the skill triggers on the right prompts is a separate check: [`triggers/`](triggers/README.md).
+
 ## How to measure a run
 
 ```sh
