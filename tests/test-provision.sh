@@ -16,7 +16,7 @@ git -C "$T/repo" checkout -q fix/counter
 echo "SECRET=1" > "$T/repo/.env"
 main=$(git -C "$T/repo" rev-parse main)
 pb=$(freeport); pa=$(freeport)
-START='python3 -m http.server "$PORT"'
+START="python3 '$ROOT/tests/serve.py' \"\$PORT\""
 common=(--repo "$T/repo" --start "$START" --state "$T/run" --ready /index.html)
 
 out=$("$P" --side before --ref main --port "$pb" --copy .env --install 'echo x >> installs.txt' "${common[@]}" 2>&1)
@@ -50,7 +50,7 @@ assert_has "dead server reported" "$out" "server exited before it was ready"
 
 # wrapper that backgrounds the server and exits: the group is still alive
 pw=$(freeport)
-out=$("$P" --side before --port "$pw" --repo "$T/repo" --start '(sleep 2; exec python3 -m http.server "$PORT") & exit 0' --state "$T/run" --ready /index.html 2>&1)
+out=$("$P" --side before --port "$pw" --repo "$T/repo" --start "(sleep 2; exec $START) & exit 0" --state "$T/run" --ready /index.html 2>&1)
 assert_eq "backgrounding wrapper is not reported dead" "$?" 0
 assert_eq "wrapper server serves" "$(curl -s --noproxy '*' -o /dev/null -w '%{http_code}' "http://localhost:$pw/index.html")" 200
 "$D" --state "$T/run" >/dev/null
@@ -107,4 +107,14 @@ out=$("$D" --state "$T/run" --repo "$T/repo" --keep nothing-to-keep)
 assert_has "prune removes the unkept worktree" "$out" "pruned=$main"
 if [ -d "$wt" ]; then not_ok "worktree dir still there"; else ok "worktree dir removed"; fi
 assert_eq "git forgot the worktree" "$(git -C "$T/repo" worktree list | wc -l | tr -d ' ')" 1
+
+# macOS ps pads "-o lstart=" with trailing spaces (CI evidence): the pid check must still match
+mkdir -p "$T/shim"; realps=$(command -v ps)
+printf '#!/bin/sh\ncase "$*" in *lstart=*) "%s" "$@" | sed "s/$/    /" ;; *) exec "%s" "$@" ;; esac\n' "$realps" "$realps" > "$T/shim/ps"
+chmod +x "$T/shim/ps"
+pm=$(freeport)
+PATH=$T/shim:$PATH "$P" --side after --port "$pm" "${common[@]}" >/dev/null 2>&1
+out=$(PATH=$T/shim:$PATH "$D" --state "$T/run")
+assert_has "padded lstart: teardown still stops the server" "$out" "stopped=after"
+if up "$pm"; then not_ok "padded lstart: port still open"; else ok "padded lstart: port closed"; fi
 done_testing

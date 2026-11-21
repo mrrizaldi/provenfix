@@ -39,7 +39,7 @@ set -m
 ) >"$state/probe.log" 2>&1 </dev/null &
 pid=$!
 set +m
-echo "$pid $(ps -o lstart= -p "$pid" || true)" >"$state/probe.pid"
+echo "$pid $(ba_lstart "$pid")" >"$state/probe.pid"
 
 stop() {
   kill -TERM -- "-$pid" 2>/dev/null || true

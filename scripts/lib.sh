@@ -32,6 +32,10 @@ ba_h264() {
   esac
 }
 
+# ba_lstart <pid>: the process start time, whitespace trimmed. macOS ps pads "-o lstart=" with
+# trailing spaces that `read` strips from the pid file, so every writer and reader goes through here.
+ba_lstart() { ps -o lstart= -p "$1" 2>/dev/null | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'; }
+
 # ba_json '<js expression over j>': read JSON on stdin, print the expression's value, one line per array item.
 # node, not jq: Playwright MCP already needs node, jq would be a new dependency.
 ba_json() {

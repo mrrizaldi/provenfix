@@ -29,7 +29,7 @@ for f in "$state"/*.pid; do
     echo "skipped=$side (bad pid)"
     continue
   fi
-  if ps -p "$pid" >/dev/null 2>&1 && [ "$(ps -o lstart= -p "$pid")" != "$start" ]; then
+  if ps -p "$pid" >/dev/null 2>&1 && [ "$(ba_lstart "$pid")" != "$start" ]; then
     rm -f "$f"
     echo "skipped=$side (pid reused)"
     continue

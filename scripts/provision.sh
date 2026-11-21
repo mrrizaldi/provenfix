@@ -98,7 +98,7 @@ set -m
 pid=$!
 set +m
 # pid + start time: teardown refuses a pid that has since been reused
-echo "$pid $(ps -o lstart= -p "$pid" || true)" >"$state/$side.pid"
+echo "$pid $(ba_lstart "$pid")" >"$state/$side.pid"
 
 url=http://localhost:$port
 secs=${BA_READY_SECS:-180}
