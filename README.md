@@ -1,0 +1,57 @@
+# before-after
+
+A Claude Code skill that proves a bug fix or feature with browser videos: **BEFORE** (old code) and **AFTER** (new code) from the same scenario, or a step-by-step **walkthrough** of a new feature. Recorded with Playwright's own screencast, so it behaves the same on Wayland, X11, macOS and headless machines.
+
+- Works out what BEFORE and AFTER are: your branch, uncommitted edits, a fix committed straight on `main`, or an MR/PR you opened earlier.
+- Starts the old code in a cached git worktree (`~/.cache/before-after/`), leaving your checkout alone, and drives both through one scenario.
+- Refuses to hand over a BEFORE video that doesn't show the bug.
+- Desktop (1440x900) by default; tablet, mobile or all three ("responsive") on request.
+- Small H.264 mp4s plus contact sheets and a paste-ready summary.
+
+## How a run goes
+
+1. Claude finds the Definition of Done (DoD): in the issue or MR/PR you name, or in your own words. No DoD, no start: it asks for steps, what happens now and what should happen.
+2. It explores read-only, then shows one plan screen: the DoD, the BEFORE/AFTER code, the setup, the data reset and the scenario. Nothing starts until you say yes.
+3. After the yes it runs to the end and stops only if a step fails or the dry-run shows BEFORE does not have the bug.
+
+## Requirements
+
+- Claude Code with Playwright MCP: `claude mcp add playwright -s user -- npx @playwright/mcp@latest`
+- Playwright's ffmpeg, matching the MCP's Playwright version: `npx -y playwright@$(npm view @playwright/mcp@latest dependencies.playwright) install ffmpeg`
+- git, curl, ffmpeg/ffprobe with an H.264 encoder (Fedora: ffmpeg from RPM Fusion; macOS: `brew install ffmpeg`)
+- Linux (any glibc distro) or macOS. Windows through WSL2 should work but is untested.
+- The bundled demo also needs `python3` (it serves the page with `python3 -m http.server`).
+
+## Install
+
+```bash
+git clone https://github.com/mrrizaldi/before-after ~/.claude/skills/before-after
+```
+
+## Use
+
+In your project, ask Claude things like:
+
+- "record before/after for this fix"
+- "make a proof video for MR !42"
+- "record the counter fix on mobile" / "...responsive"
+- "make a walkthrough video of the new export feature"
+
+The first run explores the project (how it starts, databases, ports) and puts a local config, `.playwright-mcp/ba/config.yml`, on the plan screen. It is never committed.
+
+Try it on the bundled demo: `examples/counter/make-repo.sh /tmp/counter`, open Claude Code in `/tmp/counter`, and ask for before/after of `fix/counter`.
+
+## Good to know
+
+- Each phase records in its own headless Chrome, so videos are exactly the viewport size on any window manager. The Chrome window Playwright MCP opens (headed by default) stays blank during a run. To hide it, add `--headless` to the MCP command (optional).
+- If the scenario changes data, Claude asks once per project whether resets hit a sandbox copy or your local dev database, and saves the answer in `.playwright-mcp/ba/config.yml`. It never resets a database that is not on your machine.
+- Credentials never land in a file: config holds env var names only, and the values are passed at run time and typed without showing in the video.
+- Upload is not built yet. The mp4s and summary are ready to drag into the PR/MR. Nothing is uploaded, pushed or commented unless you ask.
+
+## Development
+
+`bash tests/run-all.sh` runs the script tests (no browser or LLM needed). CI runs them on Ubuntu and macOS. Design: `docs/design.md`; spec: `docs/superpowers/specs/`.
+
+## License
+
+MIT, see `LICENSE`.

@@ -1,0 +1,5 @@
+local/
+.playwright-mcp/
+*.webm
+*.mp4
+CLAUDE.local.md
