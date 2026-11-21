@@ -55,6 +55,7 @@ Backend fixes get proven the same way: requests and their real responses, plus l
 
 ## Good to know
 
+- Start a fresh Claude Code session for each recording. Every step re-reads the whole conversation, so a run started in a long session costs more: one measured run re-read 2.6M extra tokens, about twice what a fresh session would have. See `benchmarks/`.
 - Each phase records in its own headless Chrome, so videos are exactly the viewport size on any window manager. The Chrome window Playwright MCP opens (headed by default) stays blank during a run. To hide it, add `--headless` to the MCP command (optional).
 - If the scenario changes data, Claude asks once per project whether resets hit a sandbox copy or your local dev database, and saves the answer in `.playwright-mcp/ba/config.yml`. It never resets a database that is not on your machine.
 - Credentials never land in a file: config holds env var names only, and the values are passed at run time and typed without showing in the video.
