@@ -1,4 +1,4 @@
-# before-after: design
+# provenfix: design
 
 Status: brainstorming done, all decisions approved. This file is the decision log (why); the spec is the build contract (what).
 
@@ -18,7 +18,7 @@ A Claude Code skill that proves a feature or bug fix with two separate browser r
 | D6 | Before and after are **separate videos**. **approved** | Simpler, and each one plays inline in PRs and MRs. |
 | D7 | **SKILL.md drives the MCP steps; one small bash script per deterministic step** (`preflight`, `provision`, `teardown`, `postprocess`, `upload`). Scripts take explicit flags and never parse YAML; the agent reads the config (D9) and passes values. **approved** | Every script is testable without a browser or an LLM. No YAML parser (`yq`) or Node deps needed. |
 | D8 | **`discover` step on first run** (no config yet). Agent reads README, CLAUDE.md, package scripts / Makefile / Procfile, compose files, e2e config (`playwright.config.*` gives start command and port), `.env*`, then `docker ps` and `ss -ltn` for what is actually running and which ports clash. It writes the config, shows it, the user confirms; the dry-run proves it. Migration guard: see D13. **approved** | Skill must be universal. README states intent, not truth: on the private test project the trial used an ad-hoc `demo-db`, not the compose `pgsql`, and 6379 was held by another project's redis. |
-| D9 | **Config lives at `<project>/.playwright-mcp/ba/config.yml`, local only.** Split into `services` (shared by both phases; skill checks/starts, never stops) and `app` (runs twice: worktree for BEFORE, checkout for AFTER). Login stores env var names, never credentials. If `.playwright-mcp/` is not ignored, add it to `.git/info/exclude`. Worktree cache: `~/.cache/before-after/<repo>/<base-sha>/`, reused while the base sha is unchanged. **approved** | All skill output in one folder, nothing reaches client git. Services may belong to the user's other work. Sha-keyed cache skips the ~40 s install on reruns and never goes stale. |
+| D9 | **Config lives at `<project>/.playwright-mcp/ba/config.yml`, local only.** Split into `services` (shared by both phases; skill checks/starts, never stops) and `app` (runs twice: worktree for BEFORE, checkout for AFTER). Login stores env var names, never credentials. If `.playwright-mcp/` is not ignored, add it to `.git/info/exclude`. Worktree cache: `~/.cache/provenfix/<repo>/<base-sha>/`, reused while the base sha is unchanged. **approved** | All skill output in one folder, nothing reaches client git. Services may belong to the user's other work. Sha-keyed cache skips the ~40 s install on reruns and never goes stale. |
 | D10 | **Upload is pluggable and built last.** Targets: GitHub, GitLab, R2 / any S3-compatible store. Not designed in detail until recording works end to end. Known so far: `glab api -F file=@x` is not multipart, so GitLab uploads use curl + `glab config get token --host <host from origin>` against `/projects/:id/uploads` (GitLab, including self-hosted instances); GitHub `--attach` needs gh 2.99+. From the first real upload: a re-record edits the same comment (`PUT .../notes/<id>`) instead of posting a new one; old uploads stay in GitLab's store unreferenced, so keep their ids for cleanup; `curl -4 --retry 3 --retry-all-errors` survived a flaky IPv6 route; post the body with `jq -Rs '{body: .}' summary.md | curl --data @-`. **approved** | Not every user hosts on GitHub; S3 links work anywhere. Upload is optional (D5), so it must not block the core. |
 | D11 | **Never hand over a misleading video.** Script failure → non-zero exit with a one-line reason, agent stops and reports. Dry-run where BEFORE does not show the bug (or AFTER still shows it) → stop and ask. Motion gate fails (static/black) → re-record once, then report with the contact sheet. `teardown.sh` runs on every exit and kills only the app servers the skill started. **approved** | A BEFORE that looks fine proves nothing. Services belong to the user (D9). |
 | D12 | **Testing:** public fixture `examples/counter/` (no deps, `python3 -m http.server`, bug on `main`, fix on `fix/counter`) runs the full pipeline and doubles as the README demo. Per-script smoke tests in `tests/`. A private real project (kept in `local/`) is the real-world run before release. Cinnamon X11 is a one-off pre-release check. Side-by-side `hstack` composite skipped (D6). **approved** | The real test project is private and local-only; the public repo needs its own proof of universality. A deps-free repo isolates skill bugs from app quirks. |
@@ -91,18 +91,24 @@ references/
 
 Moved to `references/findings.md` (the skill reads it at runtime). Read it before touching the recording flow.
 
-## Prior art (researched 2026-11-20)
+## Prior art
 
-| Project | What to borrow | Gap |
+Researched 2026-11-20, widened 2026-11-21 (about 30 projects; the closest are listed).
+
+| Project | What it does | Gap vs provenfix |
 |---|---|---|
-| [PR Preview](https://www.pr-preview.com/) | before.mp4/after.mp4 from a plain-English flow | Upload is manual drag-and-drop (auto-post is a paid feature), GitHub only, free tier is watermarked |
-| [claude-show-your-work](https://github.com/iamumeransari/claude-show-your-work) | Synced side-by-side playback, change markers | Plays in the terminal only, no PR/MR attachments |
-| [abode record-pr-demo](https://github.com/fredrivett/abode/pull/667) | Parity run base vs branch, isolated demo stack with a seeded user, re-encode to ≤10 MB, `gh --attach` | Tied to one app |
-| [demo-video-skill](https://github.com/alinaqi/demo-video-skill) | SSIM motion gate, look at the frames before handing over | No before/after |
-| [reshoot-action](https://github.com/kiromoussa/reshoot-action) | Per-step before/after frames, `mask:` for dynamic content | CI action with a baseline from main, GitHub only |
-| [Tim Deschryver blog](https://timdeschryver.dev/blog/let-your-ai-agent-capture-its-changes-with-the-playwright-cli) | One `run-code` script per phase for smooth pacing | No base-branch capture |
+| [PR Preview](https://pr-preview.com) | `before.mp4`/`after.mp4` from a branch comparison, via Claude Code or a CLI | GitHub only, no DoD or BEFORE-reproduction gate, visible Chrome window |
+| [record-pr skill](https://github.com/lucastamoios/skills/blob/main/skills/record-pr/SKILL.md) | Narrated before/after mp4 pair at 1440x900 | BEFORE from `git stash` of the fix only, needs a team config |
+| [claude-show-your-work](https://github.com/iamumeransari/claude-show-your-work) | Old and new version played side by side, synced, in the terminal | A review tool: no files for the PR/MR |
+| [demo-recorder](https://github.com/shlior7/demo-recorder) | Cached worktree per ref, merged-PR handling, contact sheet, posts to the PR | One demo video, no before/after pair |
+| [reeldiff](https://github.com/Nuu-maan/reeldiff) | CI replays YAML flows and pixel-diffs each step against the base deployment | CI only, flows committed to the repo |
+| [ProofShot](https://github.com/AmElmo/proofshot) | Agent records video proof and uploads it to the PR | No BEFORE video, GitHub only |
+| [reshoot-action](https://github.com/kiromoussa/reshoot-action) | Before/after frames per step on each PR | Frames only, baseline recorded on main |
+| [demo-video-skill](https://github.com/alinaqi/demo-video-skill) | Captioned proof videos with an SSIM motion gate | No before/after |
+| [Playwright CLI skill](https://unpkg.com/playwright-core@1.64.1/lib/tools/skills/playwright-cli/references/video-recording.md) | `page.screencast` chapters and overlays, PR attachments | Building blocks, no pipeline |
+| [cq-screenshots](https://gitlab.com/gitlab-org/upstream-studios/design-strategy/cq-screenshots) | Before/after screenshots for GitLab MRs | Screenshots, tied to one development setup |
 
-Differentiators for this skill: native Playwright MCP video, so no project dependency is needed; BEFORE from an automatic base-branch worktree; URL pill; on-demand upload to **both GitHub and GitLab**; works the same on Hyprland, X11 and headless.
+Common across these: walkthrough videos, chapter cards and action overlays (Playwright's own), contact sheets, motion gates, device presets, cached worktrees, upload through `gh`. Not found in any of them: BEFORE/AFTER resolved from git state (uncommitted, fixed on main, squash or fast-forward merged), a DoD gate with one plan screen, a dry-run gate that refuses a BEFORE without the bug, GitLab MRs as a video target, and asking where data resets go. Closed commercial tools could not be checked.
 
 ## Open questions
 

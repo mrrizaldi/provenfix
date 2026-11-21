@@ -1,4 +1,4 @@
-# before-after
+# provenfix
 
 Claude Code skill (to be published on the owner's GitHub) that records a BEFORE and an AFTER browser video of a feature or bug fix with Playwright MCP, through one pipeline, and uploads them to a GitHub or GitLab issue/PR/MR only when asked.
 

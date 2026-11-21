@@ -1,4 +1,4 @@
-// before-after recording harness (spec: "templates contract"). Shared by every scenario.
+// provenfix recording harness (spec: "templates contract"). Shared by every scenario.
 // The agent copies it to <project>/.playwright-mcp/ba/harness.js and loads it once per MCP browser
 // with browser_run_code_unsafe { filename }: that only registers page.__ba.run and records nothing.
 // Scenarios (flow.js, walkthrough.js) are small files loaded the same way; they register page.__ba[kind].
@@ -29,7 +29,7 @@ async (loader) => {
     const mcpBrowser = page0.context().browser();
     if (!mcpBrowser) throw new Error('Playwright MCP gave no browser handle (persistent context): restart it with --isolated');
     const bt = mcpBrowser.browserType();
-    const MARK = '--before-after-recorder'; // lets the agent find a phase still running after a rejected call (findings #15)
+    const MARK = '--provenfix-recorder'; // lets the agent find a phase still running after a rejected call (findings #15)
 
     const quiet = async (fn) => { try { await fn(); } catch { /* already gone */ } };
     const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

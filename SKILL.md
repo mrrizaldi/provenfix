@@ -1,9 +1,9 @@
 ---
-name: before-after
+name: provenfix
 description: Record browser videos of a change with Playwright MCP - a BEFORE and an AFTER video from one scenario as proof of a fix, a walkthrough video of a new feature, or both. Use when the user asks for before/after videos, a recording, demo, walkthrough, tour, proof or PoC of a change or of a GitLab/GitHub issue, including fixes made directly on main, uncommitted edits, or an MR/PR opened earlier. Desktop by default; tablet, mobile or "responsive" on request. Never uploads unless explicitly asked.
 ---
 
-# before-after
+# provenfix
 
 Two videos, same scenario: BEFORE (old code) shows the problem, AFTER (new code) shows it gone. Or a walkthrough of a new feature. Or both.
 
@@ -159,7 +159,7 @@ Gate, judged against `dod.md`: BEFORE's returned facts must show the problem and
 
 ## 4. Record (per preset)
 
-For each preset: reset, BEFORE, reset, AFTER. One `browser_run_code_unsafe` call per phase (about 20 s each), never a loop over presets or sides in one call: a long silent call looks hung, and rejecting it does not stop it (findings #15). Say which phase is next before each call. If a call was rejected or interrupted, wait until `pgrep -f 'before-after-recorde[r]'` prints nothing (each phase's browser carries that flag; the bracket stops pgrep matching its own command line) before you retry or delete files. If a recording run throws, delete its partial webm before retrying. Same call as the dry-run, with `out: '<absolute BA path>/<slug>/<side>-<preset>.webm'` and `label` `BEFORE` / `AFTER`.
+For each preset: reset, BEFORE, reset, AFTER. One `browser_run_code_unsafe` call per phase (about 20 s each), never a loop over presets or sides in one call: a long silent call looks hung, and rejecting it does not stop it (findings #15). Say which phase is next before each call. If a call was rejected or interrupted, wait until `pgrep -f 'provenfix-recorde[r]'` prints nothing (each phase's browser carries that flag; the bracket stops pgrep matching its own command line) before you retry or delete files. If a recording run throws, delete its partial webm before retrying. Same call as the dry-run, with `out: '<absolute BA path>/<slug>/<side>-<preset>.webm'` and `label` `BEFORE` / `AFTER`.
 - `both`: then reset, WALKTHROUGH (`walkthrough.js`, AFTER url, `out` `.../walkthrough-<preset>.webm`).
 - `walkthrough`: only reset, WALKTHROUGH.
 

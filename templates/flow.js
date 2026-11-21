@@ -1,4 +1,4 @@
-// before-after scenario. The agent copies this file to <project>/.playwright-mcp/ba/<slug>/flow.js
+// provenfix scenario. The agent copies this file to <project>/.playwright-mcp/ba/<slug>/flow.js
 // (walkthrough: <slug>/walkthrough.js with KIND = 'walkthrough') and replaces the body.
 // Load it with browser_run_code_unsafe { filename } after harness.js, and again after every edit.
 // It runs inside page.__ba.run(page, KIND, params), which opens a fresh context per phase:

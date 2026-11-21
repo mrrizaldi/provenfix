@@ -1,10 +1,10 @@
-# Shared helpers for before-after scripts. Source it: . "$(dirname "$0")/lib.sh"
+# Shared helpers for provenfix scripts. Source it: . "$(dirname "$0")/lib.sh"
 
 die() { echo "$(basename "$0" .sh): $*" >&2; exit 1; }
 
 # Worktree cache for one repo: <root>/<repo name>-<cksum of repo path>
 ba_cache_dir() {
-  local root=${BA_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/before-after} p
+  local root=${BA_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/provenfix} p
   case $root in /*) ;; *) root=$PWD/$root ;; esac
   p=$(cd "$1" 2>/dev/null && pwd -P) || p=$1  # same repo, same key: /x/repo/ = /x/repo, /tmp = /private/tmp
   printf '%s/%s-%s\n' "$root" "$(basename "$p")" "$(printf '%s' "$p" | cksum | cut -d' ' -f1)"

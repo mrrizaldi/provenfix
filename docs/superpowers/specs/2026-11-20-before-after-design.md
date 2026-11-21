@@ -1,4 +1,4 @@
-# before-after: spec
+# provenfix: spec
 
 Date: 2026-11-20. Decision log and rationale: `docs/design.md` (D1–D17, prior art); runtime findings: `references/findings.md`. This file is the build contract.
 
@@ -61,7 +61,7 @@ run/<side>.pid, <side>.log provision bookkeeping
 
 If `.playwright-mcp/` is not already ignored (`git check-ignore`), append it to `.git/info/exclude`. Never modify the project's `.gitignore`.
 
-Worktree cache: `${BA_CACHE_DIR:-${XDG_CACHE_HOME:-~/.cache}/before-after}/<repo-name>-<cksum of repo path>/<sha>/`, one per side that needs a worktree, plus `<sha>.ok` once install succeeded. `teardown.sh --repo <root> --keep <sha>…` removes every other cached worktree of that repo.
+Worktree cache: `${BA_CACHE_DIR:-${XDG_CACHE_HOME:-~/.cache}/provenfix}/<repo-name>-<cksum of repo path>/<sha>/`, one per side that needs a worktree, plus `<sha>.ok` once install succeeded. `teardown.sh --repo <root> --keep <sha>…` removes every other cached worktree of that repo.
 
 ## Config schema (`config.yml`)
 

@@ -1,8 +1,8 @@
-# before-after Implementation Plan
+# provenfix Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the `before-after` Claude Code skill: from any web project, record a BEFORE and an AFTER browser video of one change through Playwright MCP, with the git side (which code is BEFORE/AFTER), server provisioning and video post-processing done by small tested bash scripts.
+**Goal:** Build the `provenfix` Claude Code skill: from any web project, record a BEFORE and an AFTER browser video of one change through Playwright MCP, with the git side (which code is BEFORE/AFTER), server provisioning and video post-processing done by small tested bash scripts.
 
 **Architecture:** `SKILL.md` drives the agent through the pipeline and owns every step that needs Playwright MCP (scenario, dry-run, recording). Deterministic steps are bash scripts in `scripts/` that take explicit flags and print `key=value` lines: `resolve.sh` (git refs), `provision.sh`/`teardown.sh` (servers + worktree cache), `postprocess.sh` (ffmpeg), `preflight.sh` (environment). `templates/flow.js` is the recording harness the agent copies into the target project.
 
@@ -186,13 +186,13 @@ Expected: error `scripts/lib.sh: No such file or directory` and FAIL lines.
 
 `scripts/lib.sh`:
 ```bash
-# Shared helpers for before-after scripts. Source it: . "$(dirname "$0")/lib.sh"
+# Shared helpers for provenfix scripts. Source it: . "$(dirname "$0")/lib.sh"
 
 die() { echo "$(basename "$0" .sh): $*" >&2; exit 1; }
 
 # Worktree cache for one repo: <root>/<repo name>-<cksum of repo path>
 ba_cache_dir() {
-  local root=${BA_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/before-after} p
+  local root=${BA_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/provenfix} p
   case $root in /*) ;; *) root=$PWD/$root ;; esac
   p=$(cd "$1" 2>/dev/null && pwd -P) || p=$1  # same repo, same key: /x/repo/ = /x/repo, /tmp = /private/tmp
   printf '%s/%s-%s\n' "$root" "$(basename "$p")" "$(printf '%s' "$p" | cksum | cut -d' ' -f1)"
@@ -1291,7 +1291,7 @@ Expected: `FAIL - templates/flow.js missing`, `# FAILED`.
 
 `templates/flow.js`:
 ```js
-// before-after recording harness (spec: "templates/flow.js contract").
+// provenfix recording harness (spec: "templates/flow.js contract").
 // The agent copies this file to <project>/.playwright-mcp/ba/<slug>/flow.js and fills in `scenario`.
 // Load it with browser_run_code_unsafe { filename } once, and again after every edit: loading
 // only registers the harness as page.__ba[KIND] and records nothing. Each phase is then one short call:
@@ -1594,11 +1594,11 @@ git commit -m "docs: add config reference with flag mapping and examples"
 `SKILL.md`:
 ````markdown
 ---
-name: before-after
+name: provenfix
 description: Record browser videos of a change with Playwright MCP - a BEFORE and an AFTER video from one scenario as proof of a fix, a walkthrough video of a new feature, or both. Use when the user asks for before/after videos, a recording, demo, walkthrough, tour, proof or PoC of a change or of a GitLab/GitHub issue, including fixes made directly on main, uncommitted edits, or an MR/PR opened earlier. Desktop by default; tablet, mobile or "responsive" on request. Never uploads unless explicitly asked.
 ---
 
-# before-after
+# provenfix
 
 Two videos, same scenario: BEFORE (old code) shows the problem, AFTER (new code) shows it gone. Or a walkthrough of a new feature. Or both.
 
@@ -1754,7 +1754,7 @@ Gate, judged against `dod.md`: BEFORE's returned facts must show the problem and
 
 ## 4. Record (per preset)
 
-For each preset: reset, BEFORE, reset, AFTER. One `browser_run_code_unsafe` call per phase (about 20 s each), never a loop over presets or sides in one call: a long silent call looks hung, and rejecting it does not stop it (findings #15). Say which phase is next before each call. If a call was rejected or interrupted, wait until `pgrep -f 'before-after-recorde[r]'` prints nothing (each phase's browser carries that flag; the bracket stops pgrep matching its own command line) before you retry or delete files. If a recording run throws, delete its partial webm before retrying. Same call as the dry-run, with `out: '<absolute BA path>/<slug>/<side>-<preset>.webm'` and `label` `BEFORE` / `AFTER`.
+For each preset: reset, BEFORE, reset, AFTER. One `browser_run_code_unsafe` call per phase (about 20 s each), never a loop over presets or sides in one call: a long silent call looks hung, and rejecting it does not stop it (findings #15). Say which phase is next before each call. If a call was rejected or interrupted, wait until `pgrep -f 'provenfix-recorde[r]'` prints nothing (each phase's browser carries that flag; the bracket stops pgrep matching its own command line) before you retry or delete files. If a recording run throws, delete its partial webm before retrying. Same call as the dry-run, with `out: '<absolute BA path>/<slug>/<side>-<preset>.webm'` and `label` `BEFORE` / `AFTER`.
 - `both`: then reset, WALKTHROUGH (`walkthrough.js`, AFTER url, `out` `.../walkthrough-<preset>.webm`).
 - `walkthrough`: only reset, WALKTHROUGH.
 
@@ -1822,15 +1822,25 @@ git commit -m "feat: add SKILL.md pipeline"
 
 `README.md`:
 ````markdown
-# before-after
+# provenfix
 
 A Claude Code skill that proves a bug fix or feature with browser videos: **BEFORE** (old code) and **AFTER** (new code) from the same scenario, or a step-by-step **walkthrough** of a new feature. Recorded with Playwright's own screencast, so it behaves the same on Wayland, X11, macOS and headless machines.
 
 - Works out what BEFORE and AFTER are: your branch, uncommitted edits, a fix committed straight on `main`, or an MR/PR you opened earlier.
-- Starts the old code in a cached git worktree (`~/.cache/before-after/`), leaving your checkout alone, and drives both through one scenario.
+- Starts the old code in a cached git worktree (`~/.cache/provenfix/`), leaving your checkout alone, and drives both through one scenario.
 - Refuses to hand over a BEFORE video that doesn't show the bug.
 - Desktop (1440x900) by default; tablet, mobile or all three ("responsive") on request.
 - Small H.264 mp4s plus contact sheets and a paste-ready summary.
+
+## What's different
+
+Recording a before/after video pair for a PR is not new: [PR Preview](https://pr-preview.com) and a few Claude Code skills already do it. provenfix is about making sure the video proves the right thing. A survey of about 30 similar tools (November 2026, listed under [Prior art](docs/design.md#prior-art)) found none of these:
+
+1. BEFORE and AFTER come from git state. Uncommitted edits, a fix committed straight on `main`, a squash or fast-forward merged MR: each resolves to the right pair of commits, and an unclear case is asked, never guessed. The other tools stash the fix, check out the base branch, or take a URL you type.
+2. No Definition of Done, no start. The criteria come from the issue, the MR or your own words, and all of it (criteria, commits, setup, data reset, scenario) is confirmed on one plan screen before anything runs.
+3. A BEFORE that doesn't show the bug is refused. A dry run checks that BEFORE fails the criteria and AFTER meets them; otherwise nothing is recorded. The closest tool only checks that the new feature works.
+4. GitLab MRs are a full target, not only GitHub PRs. The one GitLab tool in the survey takes screenshots.
+5. Your data stays your call. When the scenario changes data, provenfix asks once whether resets hit a sandbox copy or your local dev database, and never resets a database that isn't on your machine.
 
 ## How a run goes
 
@@ -1849,7 +1859,7 @@ A Claude Code skill that proves a bug fix or feature with browser videos: **BEFO
 ## Install
 
 ```bash
-git clone https://github.com/mrrizaldi/before-after ~/.claude/skills/before-after
+git clone https://github.com/mrrizaldi/provenfix ~/.claude/skills/provenfix
 ```
 
 ## Use
@@ -1945,7 +1955,7 @@ Write `local/E2E.md` (gitignored): today's date, which of steps 2–6 passed, fi
 
 - [ ] **Step 1: Run the skill on a real project with a database and a login**
 
-Open Claude Code in the project (this skill installed or symlinked into `~/.claude/skills/before-after`) and ask for before/after of a merged authorization fix. Project details, demo user and reset hook live in `local/` (gitignored), never in this repo.
+Open Claude Code in the project (this skill installed or symlinked into `~/.claude/skills/provenfix`) and ask for before/after of a merged authorization fix. Project details, demo user and reset hook live in `local/` (gitignored), never in this repo.
 
 Expected: discover finds the database actually used (not just what the README says) and notes port clashes; resolve picks the MR's base and squash commit; the dry-run gate shows BEFORE allowing the action and AFTER blocking it; two desktop mp4s; no leftover dev servers.
 
@@ -2047,7 +2057,7 @@ assert_has "mobile preset 390x844 dpr 3" "$h" "mobile: { width: 390, height: 844
 assert_has "fresh context per phase" "$h" "browser.newContext("
 assert_has "records headless, never in a headed window" "$h" "headless: true"
 assert_has "secret fill hides the action overlay" "$h" "fillSecret:"
-assert_has "each phase browser carries the pgrep marker" "$h" "--before-after-recorder"
+assert_has "each phase browser carries the pgrep marker" "$h" "--provenfix-recorder"
 
 # Behaviour without a browser: load into a fake page and hit the paths that fail before any launch.
 r=$(node -e '
@@ -2077,7 +2087,7 @@ done_testing
 
 `templates/harness.js`:
 ```js
-// before-after recording harness (spec: "templates contract"). Shared by every scenario.
+// provenfix recording harness (spec: "templates contract"). Shared by every scenario.
 // The agent copies it to <project>/.playwright-mcp/ba/harness.js and loads it once per MCP browser
 // with browser_run_code_unsafe { filename }: that only registers page.__ba.run and records nothing.
 // Scenarios (flow.js, walkthrough.js) are small files loaded the same way; they register page.__ba[kind].
@@ -2108,7 +2118,7 @@ async (loader) => {
     const mcpBrowser = page0.context().browser();
     if (!mcpBrowser) throw new Error('Playwright MCP gave no browser handle (persistent context): restart it with --isolated');
     const bt = mcpBrowser.browserType();
-    const MARK = '--before-after-recorder'; // lets the agent find a phase still running after a rejected call (findings #15)
+    const MARK = '--provenfix-recorder'; // lets the agent find a phase still running after a rejected call (findings #15)
 
     const quiet = async (fn) => { try { await fn(); } catch { /* already gone */ } };
     const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -2183,7 +2193,7 @@ async (loader) => {
 
 `templates/flow.js`:
 ```js
-// before-after scenario. The agent copies this file to <project>/.playwright-mcp/ba/<slug>/flow.js
+// provenfix scenario. The agent copies this file to <project>/.playwright-mcp/ba/<slug>/flow.js
 // (walkthrough: <slug>/walkthrough.js with KIND = 'walkthrough') and replaces the body.
 // Load it with browser_run_code_unsafe { filename } after harness.js, and again after every edit.
 // It runs inside page.__ba.run(page, KIND, params), which opens a fresh context per phase:

@@ -1,12 +1,22 @@
-# before-after
+# provenfix
 
 A Claude Code skill that proves a bug fix or feature with browser videos: **BEFORE** (old code) and **AFTER** (new code) from the same scenario, or a step-by-step **walkthrough** of a new feature. Recorded with Playwright's own screencast, so it behaves the same on Wayland, X11, macOS and headless machines.
 
 - Works out what BEFORE and AFTER are: your branch, uncommitted edits, a fix committed straight on `main`, or an MR/PR you opened earlier.
-- Starts the old code in a cached git worktree (`~/.cache/before-after/`), leaving your checkout alone, and drives both through one scenario.
+- Starts the old code in a cached git worktree (`~/.cache/provenfix/`), leaving your checkout alone, and drives both through one scenario.
 - Refuses to hand over a BEFORE video that doesn't show the bug.
 - Desktop (1440x900) by default; tablet, mobile or all three ("responsive") on request.
 - Small H.264 mp4s plus contact sheets and a paste-ready summary.
+
+## What's different
+
+Recording a before/after video pair for a PR is not new: [PR Preview](https://pr-preview.com) and a few Claude Code skills already do it. provenfix is about making sure the video proves the right thing. A survey of about 30 similar tools (November 2026, listed under [Prior art](docs/design.md#prior-art)) found none of these:
+
+1. BEFORE and AFTER come from git state. Uncommitted edits, a fix committed straight on `main`, a squash or fast-forward merged MR: each resolves to the right pair of commits, and an unclear case is asked, never guessed. The other tools stash the fix, check out the base branch, or take a URL you type.
+2. No Definition of Done, no start. The criteria come from the issue, the MR or your own words, and all of it (criteria, commits, setup, data reset, scenario) is confirmed on one plan screen before anything runs.
+3. A BEFORE that doesn't show the bug is refused. A dry run checks that BEFORE fails the criteria and AFTER meets them; otherwise nothing is recorded. The closest tool only checks that the new feature works.
+4. GitLab MRs are a full target, not only GitHub PRs. The one GitLab tool in the survey takes screenshots.
+5. Your data stays your call. When the scenario changes data, provenfix asks once whether resets hit a sandbox copy or your local dev database, and never resets a database that isn't on your machine.
 
 ## How a run goes
 
@@ -25,7 +35,7 @@ A Claude Code skill that proves a bug fix or feature with browser videos: **BEFO
 ## Install
 
 ```bash
-git clone https://github.com/mrrizaldi/before-after ~/.claude/skills/before-after
+git clone https://github.com/mrrizaldi/provenfix ~/.claude/skills/provenfix
 ```
 
 ## Use

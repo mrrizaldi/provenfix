@@ -13,7 +13,7 @@ assert_has "mobile preset 390x844 dpr 3" "$h" "mobile: { width: 390, height: 844
 assert_has "fresh context per phase" "$h" "browser.newContext("
 assert_has "records headless, never in a headed window" "$h" "headless: true"
 assert_has "secret fill hides the action overlay" "$h" "fillSecret:"
-assert_has "each phase browser carries the pgrep marker" "$h" "--before-after-recorder"
+assert_has "each phase browser carries the pgrep marker" "$h" "--provenfix-recorder"
 
 # Behaviour without a browser: load into a fake page and hit the paths that fail before any launch.
 r=$(node -e '
