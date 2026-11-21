@@ -148,7 +148,7 @@ run --base main --after nope
 assert_eq "unknown ref exit 1" "$code" 1
 assert_has "unknown ref message" "$out" "unknown ref: nope"
 run --after HEAD
-assert_has "base required" "$out" "--base is required"
+assert_has "base required" "$out" "--base or --mr is required"
 
 echo "# working-tree view: .playwright-mcp, config, cwd"
 newrepo; mkdir .playwright-mcp; echo log > .playwright-mcp/console.log
@@ -191,5 +191,124 @@ assert_eq "before-only dirty shown" "$(kv "$out" dirty)" 1
 run --base main --before HEAD~1 --after HEAD
 assert_eq "explicit after on dirty tree" "$(kv "$out" after_mode)" worktree
 assert_has "explicit after warns" "$out" "warn=local uncommitted changes are NOT in AFTER"
+
+echo "# --mr: MR/PR read through stub gh/glab (one per forge)"
+S=$T/stub; stub_forge "$S"; PATH=$S/bin:$PATH
+gl() { # gl <iid> <state> <target> <head> <merge or null> <squash or null> <diff base>: GitLab MR JSON
+  answer "$S" "glab api projects/:id/merge_requests/$1" "{\"iid\":$1,\"state\":\"$2\",\"target_branch\":\"$3\",\"sha\":\"$4\",\"merge_commit_sha\":$5,\"squash_commit_sha\":$6,\"diff_refs\":{\"base_sha\":\"$7\",\"head_sha\":\"$4\"},\"web_url\":\"https://gitlab.example/g/r/-/merge_requests/$1\"}"
+}
+q() { [ "$1" = null ] && echo null || echo "\"$1\""; }
+togithub() { mkdir -p ../github.com; mv ../origin.git ../github.com/r.git; git remote set-url origin ../github.com/r.git; }
+ghpr() { # ghpr <n> <state> <base> <head> <merge oid or empty> <commit count>: gh pr view after its --jq
+  answer "$S" "gh pr view" "state=$2
+base=$3
+head=$4
+merge=$5
+count=$6
+url=https://github.com/o/r/pull/$1"
+}
+
+echo "# M1 GitLab open MR, user back on main"
+newrepo; base=$(sha HEAD); git checkout -qb feat; c mr; head=$(sha HEAD)
+git push -q origin HEAD:refs/merge-requests/1/head; git checkout -q main; git branch -qD feat
+gl 1 opened main "$head" null null "$base"
+run --mr 1
+assert_eq "M1 exit" "$code" 0
+assert_eq "M1 before = merge-base" "$(kv "$out" before)" "$base"
+assert_eq "M1 after = MR head" "$(kv "$out" after)" "$head"
+assert_eq "M1 mode" "$(kv "$out" after_mode)" worktree
+assert_eq "M1 rule" "$(kv "$out" rule)" mr-open
+assert_has "M1 names the MR" "$out" "mr=1 open https://gitlab.example/g/r/-/merge_requests/1"
+assert_has "M1 asked glab, not gh" "$(cat "$S/calls")" "glab api projects/:id/merge_requests/1"
+
+echo "# M2 GitLab merged with a merge commit"
+newrepo; base=$(sha HEAD); git checkout -qb feat; c mr; head=$(sha HEAD)
+git push -q origin HEAD:refs/merge-requests/2/head; git checkout -q main
+git merge -q --no-ff feat -m "Merge feat"; mc=$(sha HEAD); c later; git push -q origin main
+git reset -q --hard "$base"; git update-ref -d refs/remotes/origin/main
+gl 2 merged main "$head" "$(q "$mc")" null "$base"
+run --mr 2
+assert_eq "M2 exit" "$code" 0
+assert_eq "M2 before = mc^1" "$(kv "$out" before)" "$base"
+assert_eq "M2 after = mc" "$(kv "$out" after)" "$mc"
+assert_eq "M2 rule" "$(kv "$out" rule)" mr-merged
+
+echo "# M3 GitLab merged as a squash commit"
+newrepo; base=$(sha HEAD); git checkout -qb feat; c a; c b; head=$(sha HEAD)
+git push -q origin HEAD:refs/merge-requests/3/head; git checkout -q main
+git merge -q --squash feat; git commit -qm "squashed"; sc=$(sha HEAD); git push -q origin main
+gl 3 merged main "$head" null "$(q "$sc")" "$base"
+run --mr 3
+assert_eq "M3 before = sc^1" "$(kv "$out" before)" "$base"
+assert_eq "M3 after = sc" "$(kv "$out" after)" "$sc"
+assert_eq "M3 rule" "$(kv "$out" rule)" mr-squash
+
+echo "# M4 GitLab merged fast-forward"
+newrepo; base=$(sha HEAD); git checkout -qb feat; c mr; head=$(sha HEAD)
+git push -q origin HEAD:refs/merge-requests/4/head; git checkout -q main
+git merge -q --ff-only feat; c later; git push -q origin main
+gl 4 merged main "$head" null null "$base"
+run --mr 4
+assert_eq "M4 before = diff_refs.base_sha" "$(kv "$out" before)" "$base"
+assert_eq "M4 after = head" "$(kv "$out" after)" "$head"
+assert_eq "M4 rule" "$(kv "$out" rule)" mr-ff
+
+echo "# M5 GitHub open PR into develop: its target wins over --base"
+newrepo; togithub; git checkout -qb develop; c dev; git push -q origin develop; dev=$(sha HEAD)
+git checkout -qb feat; c fix; head=$(sha HEAD); git push -q origin HEAD:refs/pull/5/head
+git checkout -q main; git branch -qD feat
+ghpr 5 OPEN develop "$head" "" 1
+run --base main --mr 5
+assert_eq "M5 exit" "$code" 0
+assert_eq "M5 before = merge-base with develop" "$(kv "$out" before)" "$dev"
+assert_eq "M5 after = PR head" "$(kv "$out" after)" "$head"
+assert_eq "M5 rule" "$(kv "$out" rule)" mr-open
+assert_has "M5 asked gh" "$(cat "$S/calls")" "gh pr view 5"
+
+echo "# M6 GitHub merged, one-parent commit, several PR commits: squash or rebase? ask"
+newrepo; togithub; base=$(sha HEAD); git checkout -qb feat; c a; c b; head=$(sha HEAD)
+git push -q origin HEAD:refs/pull/6/head; git checkout -q main
+git merge -q --squash feat; git commit -qm "squashed"; sc=$(sha HEAD); git push -q origin main
+ghpr 6 MERGED main "$head" "$sc" 2
+run --mr 6
+assert_eq "M6 ambiguous" "$code" 4
+assert_has "M6 offers the merge commit" "$out" "candidate=$sc squashed"
+
+echo "# M7 GitHub merged, one-commit PR"
+newrepo; togithub; base=$(sha HEAD); git checkout -qb feat; c one; head=$(sha HEAD)
+git push -q origin HEAD:refs/pull/7/head; git checkout -q main
+git merge -q --squash feat; git commit -qm "squashed"; sc=$(sha HEAD); git push -q origin main
+ghpr 7 MERGED main "$head" "$sc" 1
+run --mr 7
+assert_eq "M7 before = sc^1" "$(kv "$out" before)" "$base"
+assert_eq "M7 after = sc" "$(kv "$out" after)" "$sc"
+assert_eq "M7 rule" "$(kv "$out" rule)" mr-squash
+
+echo "# M8 GitHub merged with a merge commit"
+newrepo; togithub; base=$(sha HEAD); git checkout -qb feat; c a; c b; head=$(sha HEAD)
+git push -q origin HEAD:refs/pull/8/head; git checkout -q main
+git merge -q --no-ff feat -m "Merge pull request #8"; mc=$(sha HEAD); git push -q origin main
+ghpr 8 MERGED main "$head" "$mc" 2
+run --mr 8
+assert_eq "M8 before = mc^1" "$(kv "$out" before)" "$base"
+assert_eq "M8 rule" "$(kv "$out" rule)" mr-merged
+
+echo "# M9 closed without merging"
+newrepo; base=$(sha HEAD); git checkout -qb feat; c mr; head=$(sha HEAD)
+git push -q origin HEAD:refs/merge-requests/9/head; git checkout -q main
+gl 9 closed main "$head" null null "$base"
+run --mr 9
+assert_eq "M9 rule" "$(kv "$out" rule)" mr-closed
+assert_eq "M9 after = head" "$(kv "$out" after)" "$head"
+assert_has "M9 warns" "$out" "warn=MR 9 is closed, not merged"
+
+echo "# M10 --mr errors"
+newrepo
+run --mr 10 --after HEAD
+assert_eq "M10 --mr with --after exit 1" "$code" 1
+assert_has "M10 says why" "$out" "--mr replaces --before/--after"
+run --mr 404
+assert_eq "M10 unreadable MR exit 1" "$code" 1
+assert_has "M10 quotes the CLI" "$out" "no answer for: api projects/:id/merge_requests/404"
 
 done_testing

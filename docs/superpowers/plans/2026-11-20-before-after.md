@@ -1904,12 +1904,12 @@ git commit -m "docs: add README"
 
 No new files. This verifies the "Done when" items that need a browser. Run in a Claude Code session in this repo (so `local/` is inside the workspace root).
 
-- [ ] **Step 1: Build the demo repo inside the workspace**
+- [x] **Step 1: Build the demo repo inside the workspace**
 
 Run: `rm -rf local/counter-e2e && examples/counter/make-repo.sh local/counter-e2e`
 Expected: `repo=.../local/counter-e2e`, checked out on `main`.
 
-- [ ] **Step 2: R9 run, desktop: "record before/after of fix/counter" while on main**
+- [x] **Step 2: R9 run, desktop: "record before/after of fix/counter" while on main**
 
 Follow `SKILL.md` exactly, with the project = `local/counter-e2e` (run scripts with `cd local/counter-e2e`). Ask exactly "record before/after of fix/counter" (no DoD). Expected at each gate:
 - context: the agent asks the bug slots before running any script; answer: "click +1 five times · it shows 1, 2, 4, 5, 6 · it should show 1, 2, 3, 4, 5"
@@ -1926,26 +1926,26 @@ pgrep -f "http.server" || echo "no leftover servers"
 ```
 Expected: both mp4s `1440,900` and under 10 MB; `no leftover servers`. Open both PNGs: BEFORE shows 4 after 2, AFTER shows 3.
 
-- [ ] **Step 3: Responsive run**
+- [x] **Step 3: Responsive run**
 
 Ask for "responsive" on the same change. Expected: six mp4s; the mobile pair is `390,844`, tablet `820,1180`. Check with the same ffprobe loop.
 
-- [ ] **Step 4: R3 run (uncommitted fix on main)**
+- [x] **Step 4: R3 run (uncommitted fix on main)**
 
 ```bash
 cd local/counter-e2e && git checkout -q main && cp ../../examples/counter/fixed.html index.html
 ```
 Ask for before/after. Expected: resolve `rule=uncommitted`, AFTER in checkout with `+ 1 uncommitted files` on the confirmation screen and in `summary.md`. Then `git checkout -- index.html`.
 
-- [ ] **Step 5: Walkthrough mode**
+- [x] **Step 5: Walkthrough mode**
 
 Ask for "a walkthrough of the counter on fix/counter: clicking +1 five times should end at 5" (from `main`). Expected: no slot question (the message states the end state), but the agent still shows `dod.md` with its understanding (End state to show: the counter reaches 5 after five clicks) and waits for your yes. Then only `--side after` provisioned (worktree of `fix/counter`), the agent writes `walkthrough.js` with a chapter per step, the dry-run passes without throwing, output `walkthrough-desktop.mp4` + PNG, and no `before-*` files.
 
-- [ ] **Step 6: Both mode**
+- [x] **Step 6: Both mode**
 
 Ask for "before/after of fix/counter plus a walkthrough". Expected: `before-desktop.mp4`, `after-desktop.mp4`, `walkthrough-desktop.mp4`; the walkthrough ran on the same AFTER server (one `after.pid` during the run); `summary.md` has both sections. Teardown leaves no servers (`pgrep -f http.server || echo none`).
 
-- [ ] **Step 7: Record results**
+- [x] **Step 7: Record results**
 
 Write `local/E2E.md` (gitignored): today's date, which of steps 2–6 passed, file sizes, and any fix needed. Fix any bug found in the owning task's script with a failing test first, then rerun this task.
 

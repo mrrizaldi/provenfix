@@ -51,6 +51,8 @@ The first run explores the project (how it starts, databases, ports) and puts a 
 
 Try it on the bundled demo: `examples/counter/make-repo.sh /tmp/counter`, open Claude Code in `/tmp/counter`, and ask for before/after of `fix/counter`.
 
+Backend fixes get proven the same way: requests and their real responses, plus live output of named checks (a DB count, a mail outbox, a log grep), are shown as panels in the video. A ticket with no UI records on a plain stage page. Demo: `examples/notes-api/make-repo.sh /tmp/notes-api`, then ask for before/after of `fix/notes-auth`.
+
 ## Good to know
 
 - Each phase records in its own headless Chrome, so videos are exactly the viewport size on any window manager. The Chrome window Playwright MCP opens (headed by default) stays blank during a run. To hide it, add `--headless` to the MCP command (optional).

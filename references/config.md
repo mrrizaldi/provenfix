@@ -24,6 +24,7 @@ presets:                        # optional. custom presets, passed to the harnes
   laptop-sm: { width: 1366, height: 768, dpr: 1, mobile: false }
 reset: <cmd>                    # optional. runs before every dry-run and record phase
 reset_target: sandbox            # set when reset exists. sandbox | dev, the user's answer (SKILL.md 0.5), reused on later runs
+probe_port: 47100               # optional. port for scripts/probe.sh when a scenario has probes; discover picks a free one
 login:                          # optional. env var NAMES, never values
   path: /login
   user_env: BA_USER
@@ -82,4 +83,21 @@ login: { path: /login, user_env: BA_USER, pass_env: BA_PASS }
 notes: |
   redis 6379 is held by another project's container; the app runs without it.
   Fresh worktree Vite re-optimizes deps on first load: the dry-run absorbs it.
+```
+
+## Example: examples/notes-api (backend proof, stage page)
+
+```yaml
+base: main
+app:
+  dir: .
+  start: node server.mjs
+  port_env: PORT
+  ports: { before: 8111, after: 8112 }
+  env: { NOTES_DB: "<abs project>/.playwright-mcp/ba/run/notes.json", NOTES_OUTBOX: "<abs project>/.playwright-mcp/ba/run/outbox.log" }
+  ready: /
+reset: bash .playwright-mcp/ba/reset.sh .playwright-mcp/ba/run
+reset_target: sandbox
+probe_port: 47100
+viewports: [desktop]
 ```

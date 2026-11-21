@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Turn a Playwright screencast webm into a small mp4 plus a contact sheet (spec step 5).
 # postprocess.sh <in.webm> <out.mp4>
-# stdout: out= png= duration= trimmed=<seconds or empty> frozen= encoder= bytes=
-# exit 3: the video is (nearly) static (>= 95% without change); re-record instead of shipping it.
+# stdout: out= png= duration= trimmed=<seconds or empty> frozen= changes= encoder= bytes=
+# exit 3: the video is static (>= 95% without change and < 5 separate changes); re-record instead of shipping it.
 set -euo pipefail
 export LC_ALL=C  # mawk honours LC_NUMERIC: "7,00" would break -t and fps=
 . "$(dirname "$0")/lib.sh"
@@ -20,16 +20,19 @@ changes=$(ffmpeg -hide_banner -nostats -i "$in" -vf mpdecimate,showinfo -an -f n
   | grep -oE 'pts_time:[0-9.]+' | cut -d: -f2) || die "ffmpeg could not decode $in"
 
 # frozen = gaps >= 1 s between changes + the tail after the last change if >= 1 s
-read -r frozen last <<EOF
+# events = separate changes (the first frame, then each change after a gap >= 1 s)
+read -r frozen last events <<EOF
 $(printf '%s\n' "$changes" | awk -v dur="$dur" '
-  NR == 1 { prev = $1; next }
-  { if ($1 - prev >= 1) frozen += $1 - prev; prev = $1 }
-  END { if (dur - prev >= 1) frozen += dur - prev; printf "%.2f %.2f\n", frozen, prev }')
+  NR == 1 { prev = $1; events = 1; next }
+  { if ($1 - prev >= 1) { frozen += $1 - prev; events++ } prev = $1 }
+  END { if (dur - prev >= 1) frozen += dur - prev; printf "%.2f %.2f %d\n", frozen, prev, events }')
 EOF
 if [ -z "${last:-}" ]; then die "could not analyse motion in $in"; fi
 
-if awk -v f="$frozen" -v d="$dur" 'BEGIN { exit !(f >= 0.95 * d) }'; then
-  echo "postprocess: $in is static (${frozen}s of ${dur}s without change)" >&2
+# Static = almost no time with change AND almost no separate changes. A proof that holds each panel
+# for a few seconds is ~97% frozen yet has many changes (findings #12, #18); a blank page has one.
+if [ "$events" -lt 5 ] && awk -v f="$frozen" -v d="$dur" 'BEGIN { exit !(f >= 0.95 * d) }'; then
+  echo "postprocess: $in is static (${frozen}s of ${dur}s without change, $events separate changes)" >&2
   exit 3
 fi
 
@@ -50,5 +53,6 @@ echo "png=$png"
 echo "duration=$end"
 echo "trimmed=$trimmed"
 echo "frozen=$frozen"
+echo "changes=$events"
 echo "encoder=$enc"
 echo "bytes=$(wc -c <"$out" | tr -d ' ')"

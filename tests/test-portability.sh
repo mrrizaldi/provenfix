@@ -38,7 +38,7 @@ EOF
 assert_eq "pattern catches every banned form" "$(scan "$tmp/bad.sh" | wc -l | tr -d ' ')" "14"
 assert_eq "pattern leaves portable code alone" "$(scan "$tmp/good.sh")" ""
 
-files=("$ROOT"/scripts/*.sh "$ROOT"/examples/counter/*.sh)
+files=("$ROOT"/scripts/*.sh "$ROOT"/examples/*/*.sh "$ROOT"/templates/*.sh)
 if [ ${#files[@]} = 0 ]; then
   ok "no scripts yet"
 else

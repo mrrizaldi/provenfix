@@ -29,6 +29,14 @@ assert_eq "small-change clip not gated" "$?" 0
 assert_eq "small-change clip not trimmed" "$(kv "$out" trimmed)" ""
 assert_eq "mobile size kept" "$(ffprobe -v error -show_entries stream=width,height -of csv=p=0 "$T/small.mp4")" "390,844"
 
+# slideshow: a panel changes every 6 s, nothing moves in between (stage-page proofs: ~97% frozen
+# but 7 separate changes). Readable pauses are not a static video.
+mk -f lavfi -i color=c=gray:s=160x120:r=5:d=40 \
+   -vf "drawbox=x=20:y=20:w=40:h=40:color=black:t=fill:enable='lt(mod(t,12),6)'" -c:v libvpx -b:v 100k "$T/slides.webm"
+out=$("$PP" "$T/slides.webm" "$T/slides.mp4" 2>&1)
+assert_eq "slideshow with 7 changes not gated" "$?" 0
+assert_has "slideshow reports its change count" "$out" "changes=7"
+
 # comma-decimal locale with mawk ("7,00" broke -t); runs only where both exist
 loc=$(locale -a 2>/dev/null | grep -iE '^(de_DE|id_ID|fr_FR)\.utf-?8$' | sed -n 1p)
 if command -v mawk >/dev/null 2>&1 && [ -n "$loc" ]; then

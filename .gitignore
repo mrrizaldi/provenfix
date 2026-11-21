@@ -3,3 +3,4 @@ local/
 *.webm
 *.mp4
 CLAUDE.local.md
+__pycache__/
