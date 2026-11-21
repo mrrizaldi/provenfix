@@ -1,6 +1,6 @@
 # provenfix
 
-Claude Code skill (to be published on the owner's GitHub) that records a BEFORE and an AFTER browser video of a feature or bug fix with Playwright MCP, through one pipeline, and uploads them to a GitHub or GitLab issue/PR/MR only when asked.
+Claude Code skill, published at github.com/mrrizaldi/provenfix, that records a BEFORE and an AFTER browser video of a feature or bug fix with Playwright MCP, through one pipeline. It doesn't upload yet: the videos are left for the user to attach. Upload to a GitHub or GitLab issue/PR/MR or S3-compatible storage, only when asked, is the next phase (D10).
 
 ## Where we are
 

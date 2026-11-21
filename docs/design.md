@@ -109,6 +109,7 @@ examples/
   notes-api/             backend-proof fixture: http + data + mail + log, stage page (D12, D20)
 tests/                   one test-*.sh per script, run-all.sh, stub gh/glab, serve.py
 benchmarks/              collect.py + results: time, tokens, cost, video size per run
+  triggers/              evals.json + run.py: does the skill load on the right prompts
 ```
 
 ## Findings

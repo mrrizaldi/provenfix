@@ -63,11 +63,11 @@ def main():
     if a.ids:
         want = set(a.ids.split(','))
         evals = [e for e in evals if e['id'] in want]
-    workdir = tempfile.mkdtemp(prefix='provenfix-triggers-')
-    subprocess.run(['git', 'init', '-q', workdir], check=True)
     jobs = [(e, n) for e in evals for n in range(a.runs)]
-    with ThreadPoolExecutor(a.workers) as ex:
-        res = list(ex.map(lambda j: (j[0]['id'], *once(j[0]['query'], workdir, a.timeout, a.model)), jobs))
+    with tempfile.TemporaryDirectory(prefix='provenfix-triggers-', ignore_cleanup_errors=True) as workdir:
+        subprocess.run(['git', 'init', '-q', workdir], check=True)
+        with ThreadPoolExecutor(a.workers) as ex:
+            res = list(ex.map(lambda j: (j[0]['id'], *once(j[0]['query'], workdir, a.timeout, a.model)), jobs))
     if a.out:
         json.dump([{'id': i, 'triggered': t, 'first_skill': f} for i, t, f in res], open(a.out, 'w'), indent=1)
     hits, firsts = collections.Counter(), collections.defaultdict(collections.Counter)
